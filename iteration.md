@@ -1768,22 +1768,16 @@ This snippet is equivalent to:
 ```
 
 Multiple variables can be stepped in parallel. Here, "in parallel"
-means they don't see each other when they are created, just like `let`.
+means they don't see each other when they are created, just like `let`,
+and they don't see *the new value of each other* at each step.
 
-In this example, we step over `i` and `j`:
+In this example, we step over 2 bindings, `i` and `j`:
 
 ~~~lisp
 (do ((i 0 (1+ i))
-     (j 10 (- j 2)))
+     (j 10 (- 10 i)))
     ((>= i 5) (list i j))
   (format t "i=~a j=~a~%" i j))
-;; =>
-i=0 j=10
-i=1 j=8
-i=2 j=6
-i=3 j=4
-i=4 j=2
-;; => (5 0)
 ~~~
 
 Note the indentation and the set of parenthesis around them. Indented differently:
@@ -1791,12 +1785,29 @@ Note the indentation and the set of parenthesis around them. Indented differentl
 ~~~lisp
 (do (
      (i 0  (1+ i))
-     (j 10 (- j 2))
+     (j 10 (- 10 i))
     ; ^ ^^ ^^^
     ; var init step
     )
     …
 ~~~
+
+See how `j` doesn't depend on `i` for its initialization form. `j`
+uses `i` only in its step form.
+
+This is the result:
+
+```
+i=0 j=10
+i=1 j=10
+i=2 j=9
+i=3 j=8
+i=4 j=7
+;; => (5 6)
+```
+
+Read below to see the difference with the `do*` macro.
+
 
 ### Multiple result forms
 
@@ -1818,10 +1829,32 @@ returned.
 
 ### `do*`: iterate on statements sequentially, like `let*`
 
-`do*` is the same but it binds variables sequentially (each variable can
-see the previous ones in its initialization form), like `let*`.
+`do*` is similar, but it binds variables sequentially (each variable can
+see the previous ones in its initialization form), like `let*`,
+and each variable sees the other bindings' *new value* at the beginning of each step.
 
-So, this example using `do` will not compile, as `j` refers to `i` in its initialization form. We should have used `do*`:
+Taking the same example as above, but with `do*`:
+
+~~~lisp
+(do* ((i 0 (1+ i))
+      (j 10 (- 10 i)))
+     ((>= i 5) (list i j))
+  (format t "i=~a j=~a~%" i j))
+;; =>
+i=0 j=10
+i=1 j=9
+i=2 j=8
+i=3 j=7
+i=4 j=6
+;; => (5 5)
+~~~
+
+See how the results are different. At the beginning of the second
+iteration (the first one after the initialization step), `i` is 1, and
+`j` *now* sees `i` as 1 and not 0, the previous value, because of the
+sequential binding, so `j` becomes 9.
+
+Also observe how this example using `do` will not compile, as `j` refers to `i` in its initialization form. We should have used `do*`:
 
 ~~~lisp
 ;; DOESN'T COMPILE, USE DO*
@@ -1841,15 +1874,6 @@ and if you run it in the REPL nonetheless, a runtime error saying "The variable 
 
 You can use `do*`.
 
-Note that you could start `j` at 0 (not referring to a previous
-variable) and refer to `i` in the step form:
-
-~~~lisp
-(do ((i 0 (1+ i))
-     (j 0 (* 2 i)))
-    ((>= i 5) i)
-  (format t "i is ~a, j is ~a~&" i j))
-~~~
 
 ### Implicit `block`: using `return`.
 
