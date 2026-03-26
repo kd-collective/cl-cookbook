@@ -302,52 +302,6 @@ Or you can use `return` with return values:
 ~~~
 
 
-#### do
-
-The built-in `do` macro is the general-purpose iteration
-primitive. Each variable has an init-form and a step-form,
-and the loop terminates when a test becomes true:
-
-~~~lisp
-(do ((i 0 (1+ i)))
-    ((>= i 5) i)
-  (print i))
-;; =>
-0
-1
-2
-3
-4
-5
-~~~
-
-The first list declares variables: `(var init step)`.
-The second list is `(end-test result-form)`. The body
-follows.
-
-Multiple variables can be stepped in parallel:
-
-~~~lisp
-(do ((i 0 (1+ i))
-     (j 10 (- j 2)))
-    ((>= i 5) (list i j))
-  (format t "i=~a j=~a~%" i j))
-;; =>
-i=0 j=10
-i=1 j=8
-i=2 j=6
-i=3 j=4
-i=4 j=2
-(5 0)
-~~~
-
-`do*` is the same but binds variables sequentially
-(each variable can see the previous ones), like `let*`
-vs `let`.
-
-In practice, `loop` and `dotimes` are used more often
-for everyday iteration. `do` is useful when you need
-explicit control over multiple stepping variables.
 
 #### loop… repeat
 
@@ -1758,6 +1712,241 @@ full of feature flag checks (`#+(or allegro clisp-aloop cmu openmcl
 sbcl scl)`) and they call internal modules
 (`ansi-loop::add-loop-path`, `sb-loop::add-loop-path` etc).
 
+## do and do*, tagbody and go: the general purpose and low-level iteration constructs
+
+The built-in `do` macro is the general-purpose primitive.
+
+In practice, `loop`, `dotimes` and friends are used more often
+for everyday needs. `do` is useful when you need
+explicit control over multiple stepping variables,
+when you want to use tags and `go` in your iteration body,
+or when you prefer lispy parenthesis over a `loop` DSL (which could reveal easier
+to use inside macros in order to create your own iteration constructs).
+
+As a newcomer, you don't really *need* to learn `do`.
+
+### The `do` structure
+
+`do` is composed of:
+
+- a list of bindings that define a variable and, optionally, their initial value and how to iterate on them,
+- a list that contains:
+  - the test form: when it evaluates to true, the iteration stops
+  - what to return as a result of the iteration. It can be one simple form, or many. They are wrapped in an implicit progn.
+- a macro body.
+
+In the example below, we step over only one variable, bound to `i` in
+the macro body. It starts at 0, and at each iteration, it gets the
+result of `(1+ i)`.
+
+The iteration terminates when `(>= i 5)` becomes true and we return `i`.
+
+~~~lisp
+(do ((i 0 (1+ i)))  ;; <-- var + init form + step form
+                    ;;     no more bindings
+    ((>= i 5) i)    ;; <-- the test form + the result
+  (print i))
+;; =>
+0
+1
+2
+3
+4
+;; => 5
+~~~
+
+Note that we print 0 to 4 and we return 5. At the beginning of the last iteration, the
+step form was evaluated, `i` was bound to 5, then the test form `(>= i 5)` was true, so
+the number 5 was returned.
+
+This snippet is equivalent to:
+
+```lisp
+(loop for i from 0 below 5
+  do (print i)
+  finally (return i))
+```
+
+Multiple variables can be stepped in parallel. Here, "in parallel"
+means they don't see each other when they are created, just like `let`.
+
+In this example, we step over `i` and `j`:
+
+~~~lisp
+(do ((i 0 (1+ i))
+     (j 10 (- j 2)))
+    ((>= i 5) (list i j))
+  (format t "i=~a j=~a~%" i j))
+;; =>
+i=0 j=10
+i=1 j=8
+i=2 j=6
+i=3 j=4
+i=4 j=2
+;; => (5 0)
+~~~
+
+Note the indentation and the set of parenthesis around them. Indented differently:
+
+~~~lisp
+(do (
+     (i 0  (1+ i))
+     (j 10 (- j 2))
+    ; ^ ^^ ^^^
+    ; var init step
+    )
+    …
+~~~
+
+### Multiple result forms
+
+In the above examples, we simply return `i`, `j` or `(list i j)`, those are one lisp form.
+
+We can write multiple result forms. They will be evaluated as if
+wrapped in a `progn`. So, the result of the last expression is
+returned.
+
+~~~lisp
+(do* ((i 0 (1+ i)))
+      ((>= i 5) (print "hey it's time to return") i i i)
+      ;;        ^^   result forms as if in a PROGN    ^^
+    (print i))
+…
+;; => 5
+~~~
+
+
+### `do*`: iterate on statements sequentially, like `let*`
+
+`do*` is the same but it binds variables sequentially (each variable can
+see the previous ones in its initialization form), like `let*`.
+
+So, this example using `do` will not compile, as `j` refers to `i` in its initialization form. We should have used `do*`:
+
+~~~lisp
+;; DOESN'T COMPILE, USE DO*
+(do ((i 0 (1+ i))
+     (j i (* 2 i)))
+     ;; ^^ refers to a previous binding.
+    ((>= i 5) i)
+  (format t "i is ~a, j is ~a~&" i j))
+~~~
+
+You'll see a compilation warning:
+
+> ; caught WARNING:
+>;   undefined variable: COMMON-LISP-USER::I
+
+and if you run it in the REPL nonetheless, a runtime error saying "The variable I is unbound.".
+
+You can use `do*`.
+
+Note that you could start `j` at 0 (not referring to a previous
+variable) and refer to `i` in the step form:
+
+~~~lisp
+(do ((i 0 (1+ i))
+     (j 0 (* 2 i)))
+    ((>= i 5) i)
+  (format t "i is ~a, j is ~a~&" i j))
+~~~
+
+### Implicit `block`: using `return`.
+
+`do/do*` are surrounded by an implicit `block` named `nil`.
+
+As a consequence, we can use `(return)` (implicitely, returning from
+the block named nil, otherwise we'd use `return-from block-name`).
+
+~~~lisp
+(do* ((i 0 (1+ i))
+      (j i (* 2 i)))
+     ((>= i 5) i)
+  (when (> i 2)
+    (return i))   ;; <----- return works
+  (format t "i is ~a, j is ~a~&" i j))
+
+i is 0, j is 0
+i is 1, j is 2
+i is 2, j is 4
+;; => 3
+~~~
+
+### Implicit `tagbody`: using `go`
+
+The `do/do*` body is wrapped by an implicit `tagbody`.
+
+Let's check this with a macro-expansion:
+
+```lisp
+(macroexpand-1 '(do ((i 0 (1+ i)))
+    ((>= i 5) i)
+  (print i))
+  )
+
+(BLOCK NIL
+  (LET* ((I 0))
+    (DECLARE (IGNORABLE I))
+    (TAGBODY
+      (GO #:G318)
+     #:G317
+      (TAGBODY (PRINT I))
+      (PSETQ I (1+ I))
+     #:G318
+      (UNLESS (>= I 5) (GO #:G317))
+      (RETURN-FROM NIL (PROGN I)))))
+```
+
+That means we can use tags and `go` in our iteration body:
+
+~~~lisp
+(do ((i 0 (1+ i)))
+     ((>= i 5) i)
+
+  ;; start of body.
+
+  (when (= i 1)
+    (go tag1))
+  (when (= i 2)
+    (go tag2))
+
+  (go end)
+
+ tag1      ;; <---------- a tag, inside an implicit tagbody.
+  (print "hello tag 1")
+  (go end)
+
+ tag2
+  (print "hello tag 2")
+  (go end)
+
+ end
+  (print i)
+  )
+~~~
+
+This outputs:
+
+~~~lisp
+0
+"hello tag 1"
+1
+"hello tag 2"
+2
+3
+4
+;; => 5
+~~~
+
+Making a cleaver use of tags is left as an exercise to the reader, but not to newcomers.
+
+### `do` for newcomers?
+
+Should you use `do`? Use what you please, but as a beginner, first
+learn `dotimes`, `dolist` and enough of `loop` to be dangerous. You
+can have a long career by using `loop` only ;)
+
+- read more on the [Community Spec](https://cl-community-spec.github.io/pages/do.html).
 
 ## Custom series scanners
 
