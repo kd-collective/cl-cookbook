@@ -1723,7 +1723,8 @@ when you want to use tags and `go` in your iteration body,
 or when you prefer lispy parenthesis over a `loop` DSL (which could reveal easier
 to use inside macros in order to create your own iteration constructs).
 
-As a newcomer, you don't really *need* to learn `do`.
+As a newcomer, you don't *need* to learn `do` right away, but you
+should come back to it at some point.
 
 ### The `do` structure
 
