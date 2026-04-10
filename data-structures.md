@@ -287,62 +287,165 @@ They make sense when applied to lists containing other lists.
 (caadr (list (list 1 2) (list 3 4))) ==> 3
 ~~~
 
-### destructuring-bind (parameter*, list)
+### destructuring-bind (parameter*, list): pattern matching
 
-It binds the parameter values to the list elements. We can destructure
-trees, plists and even provide defaults.
+This macro does simple pattern matching on lists.
 
-Simple matching:
+From a declaration of parameters, it binds each parameter to its value
+taken from the input list.
+
+We can destructure lists and nested lists, with a fixed or a variable
+number of elements, we can provide defaults to absent elements, and we
+can match the keys of property lists, using the lambla list keywords
+we know from a `defun` or a `defmacro`: `&key`, `&rest`,
+`&allow-other-keys`, etc.
+
+Example:
 
 ~~~lisp
-(destructuring-bind (x y z) (list 1 2 3)
-  (list :x x :y y :z z))
-;; => (:X 1 :Y 2 :Z 3)
+(destructuring-bind (x y z)
+    (list 1 2 3)
+  (format t "x= ~s, y= ~s, z= ~s" x y z))
+;; x= 1, y= 2, z= 3
 ~~~
 
-Matching inside sublists:
+On this example we want to match exactly `(x y z)`, so the list we
+match on must provide x, y and z.
+
+Below we make the presence of `z` optional. Now we can match againt a
+list of 2 elements and a list of 3 elements:
 
 ~~~lisp
-(destructuring-bind (x (y1 y2) z) (list 1 (list 2 20) 3)
+(destructuring-bind (x y &optional z)
+    (list 1 2)
+  (format t "x= ~s, y= ~s, z=~s" x y z))
+;; x= 1, y= 2, z=NIL
+~~~
+
+But if we wanted to match against a list of a variable number of
+arguments, it wouldn't work:
+
+~~~lisp
+;; DOESN't WORK:
+(destructuring-bind (x y &optional z)
+    (list 1 2 3 4 5)
+  (format t "x= ~s, y= ~s, z=~s" x y z))
+~~~
+
+we get an error:
+
+```
+Error while parsing arguments to DESTRUCTURING-BIND:
+  too many elements in
+    (1 2 3 4 5)
+  to satisfy lambda list
+    (X Y &OPTIONAL Z):
+  between 1 and 3 expected, but got 5
+```
+
+We can bind the variable number of elements to `z` with `&rest`. Now
+`z` is bound to a list:
+
+~~~lisp
+(destructuring-bind (x y &rest z)
+    (list 1 2 3 4 5)
+  (format t "x= ~s, y= ~s, z=~s" x y z))
+;; x= 1, y= 2, z=(3 4 5)
+~~~
+
+The `&whole` parameter is bound to the whole list. It must be the
+first one and others can follow:
+
+~~~lisp
+(destructuring-bind (&whole whole-list x y &optional z)
+    (list 1 2 3)
+  (format t "x= ~s, y= ~s, z=~s, whole list: ~s" x y z whole-list))
+;; x= 1, y= 2, z=3, whole list: (1 2 3)
+~~~
+
+
+We can match inside sublists:
+
+~~~lisp
+(destructuring-bind (x (y1 y2) z)
+    (list 1 (list 2 20) 3)
   (list :x x :y1 y1 :y2 y2 :z z))
 ;; => (:X 1 :Y1 2 :Y2 20 :Z 3)
 ~~~
 
-The parameter list can use the usual `&optional`, `&rest` and `&key`
-parameters.
+
+Another useful feature is destructuring a plist, a list alternating a
+keyword and a value. We can tell what keys to match, and they
+can appear in any order in the input:
 
 ~~~lisp
-(destructuring-bind (x (y1 &optional y2) z) (list 1 (list 2) 3)
-  (list :x x :y1 y1 :y2 y2 :z z))
-;; => (:X 1 :Y1 2 :Y2 NIL :Z 3)
+(destructuring-bind (&key a b c)
+    (list :c 3 :b 2 :a 1)
+  (format t "a= ~s, b= ~s, c=~s" a b c))
+;; a= 1, b= 2, c=3
 ~~~
 
+If a key is not present, it's OK. No need to mark it optional:
+
 ~~~lisp
-(destructuring-bind (&key x y z) (list :z 1 :y 2 :x 3)
-  (list :x x :y y :z z))
-;; => (:X 3 :Y 2 :Z 1)
+(destructuring-bind (&key a b c)
+    (list :b 2 :a 1)
+  (format t "a= ~s, b= ~s, c=~s" a b c))
+a= 1, b= 2, c=NIL
 ~~~
 
-The `&whole` parameter is bound to the whole list. It must be the
-first one and others can follow.
+But we can't have an input with undeclared keys, we should use `&allow-other-keys`:
 
 ~~~lisp
-(destructuring-bind (&whole whole-list &key x y z)
-    (list :z 1 :y 2 :x 3)
-  (list :x x :y y :z z :whole whole-list))
-;; => (:X 3 :Y 2 :Z 1 :WHOLE-LIST (:Z 1 :Y 2 :X 3))
+;; DOESN'T WORK
+(destructuring-bind (&key a b c)
+    (list :b 2 :a 1 :foo t)
+    ;;              ^^^ unknown
+  (format t "a= ~s, b= ~s, c=~s" a b c))
 ~~~
 
-Destructuring a plist, giving defaults:
+We get a clear error again:
 
-(example from Common Lisp Recipes, by E. Weitz, Apress, 2016)
+```
+Error while parsing arguments to DESTRUCTURING-BIND:
+  unknown keyword: :FOO; expected one of :A, :B, :C
+```
+
+Now we use `&allow-other-keys`:
 
 ~~~lisp
-(destructuring-bind (&key a (b :not-found) c
-                     &allow-other-keys)
-    '(:c 23 :d "D" :a #\A :foo :whatever)
-  (list a b c))
-;; => (#\A :NOT-FOUND 23)
+(destructuring-bind (&key a b c &allow-other-keys)
+    (list :b 2 :a 1 :foo t)
+  (format t "a= ~s, b= ~s, c=~s" a b c))
+;; a= 1, b= 2, c=NIL
+~~~
+
+
+That's not all. Like in a `defun` lambda list, we can give
+defaults, by using a cons cell `(key default)`:
+
+
+~~~lisp
+(destructuring-bind (&key a b (c 42))
+    (list :b 2 :a 1)
+  (format t "a= ~s, b= ~s, c=~s" a b c))
+;; a= 1, b= 2, c=42
+~~~
+
+A destructuring lambda list can contain all the same keywords as a
+macro lambda list, except for `&environment`. This includes `&aux` and
+`&body`.
+
+`destructuring-bind`'s structure is: a lambda-list, an input list, an
+optional declaration using `declare`, one or many forms in the body.
+
+The input list can be an expression that will be evaluated:
+
+~~~lisp
+(destructuring-bind ((a &optional (b 'beta)) one two three)
+     `((alpha) ,@(list 1 2 3))
+  (list a b one two three))
+;; => (ALPHA BETA 1 2 3)
 ~~~
 
 If this gives you the will to do pattern matching, see
