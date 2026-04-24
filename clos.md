@@ -1868,5 +1868,40 @@ this new class, and compute new slots intelligently. Use
 
 See more on the [HyperSpec](https://www.lispworks.com/documentation/HyperSpec/Body/f_update.htm) or on the [Community Spec](https://cl-community-spec.github.io/pages/update_002dinstance_002dfor_002ddifferent_002dclass.html).
 
+### Finding methods matching qualifiers and types
 
-And see more in the books!
+You want to check if a method exists with a given set of *qualifiers*
+(such as the `:around` method) and, most importantly, *specializers* (the
+type(s) the method dispatches on.
+
+For example, in this chapter we specialized the `print-object` method
+for a `person` object:
+
+```lisp
+(defmethod print-object ((obj person) stream)
+```
+
+Now, in our program that uses some introspection, we want to see if
+such a function exists, and get a reference to it.
+
+Use `find-method`:
+
+~~~lisp
+(find-method #'print-object nil '(person t))
+;; => <STANDARD-METHOD COMMON-LISP:PRINT-OBJECT (PERSON T) {1204FA0B83}>
+~~~
+
+The first argument, `nil`, is a list of qualifiers. We are not
+interested in the `:around`, `:before` or `:after` methods, so we keep
+it `nil`. We could use `'(:around)`, as a list.
+
+The second argument is a list of the method's arguments'
+types. `print-object` takes 2 arguments, a person and a stream. We can
+use `'(t t)` to get a reference to the generic function. We use
+`'(person t)` to get a reference to the method that specializes on a
+person, and on any stream.
+
+
+### Final words
+
+See (much) more in the books!

@@ -69,6 +69,42 @@ See also:
 * [Lisp in Vim](https://susam.net/blog/lisp-in-vim.html) demonstrates usage and
   compares both Slimv and Vlime
 
+## Mine: single-download IDE for Common Lisp and Coalton
+
+`mine` is a brand new (released in April of 2026) terminal-based IDE
+for *both* Common Lisp and [Coalton](https://coalton-lang.github.io/)
+(the statically typed functional superset of Common Lisp).
+
+> `mine` is a complete, single-download application that comes with everything needed to experience the interactive and incremental development programming workflow, including hot-reloading and on-the-fly debugging, that Lisp programmers often refer to as the differentiating feature of the ecosystem.
+
+- [Mine's homepage](https://coalton-lang.github.io/mine/)
+  - 👉 [download the latest release for Windows, MacOS and GNU/Linux](https://github.com/coalton-lang/coalton/releases/latest)
+- [Introducing mine, a Coalton and Common Lisp IDE](https://coalton-lang.github.io/20260424-mine/)
+
+<img src="https://coalton-lang.github.io/20260424-mine/mine-screenshot.png"
+     style="width: 80%" alt="The beginner friendly mine editor."/>
+
+`mine` features:
+
+- Inline **diagnostics**, from critical errors to harmless optimization notes
+- Integrated **debugger** with readable backtraces
+- Jump-to-definition (the Lisper-favorite meta-dot)
+- **Autocomplete** that is aware of package nicknames
+- Real-time display of argument lists and function types
+- Syntax highlighting
+- Auto-indentation
+- Structural editing
+- **Project creation** and setup
+- Built-in **Quicklisp setup**
+- Native code compiler and executable builder
+
+Check it out.
+
+Also please note that `mine` is different:
+
+> mine is supposed to be as easy as the QBASIC or the Borland Turbo products of yore
+
+
 ## Pulsar (ex Atom)
 
 See [SLIMA](https://github.com/neil-lindquist/slima). This package
