@@ -7,7 +7,7 @@ Common Lisp. Every time you read from a file, write to the
 terminal, or communicate over a network socket, you are using
 a stream.
 
-Many built-in functions have a stream argument, may it be optional:
+Many built-in functions have a stream argument, maybe optional:
 
 ```lisp
 (print object &optional stream)
@@ -79,7 +79,7 @@ are bound by default:
 | Variable | Purpose |
 |---|---|
 | `*standard-input*` | Default input (your terminal or REPL) |
-| `*standard-output*` or `t` | Default output (your terminal or REPL) |
+| `*standard-output*` | Default output (your terminal or REPL) |
 | `*error-output*` | Error/warning messages |
 | `*trace-output*` | Output from `trace` |
 | `*debug-io*` | Interactive debugging I/O |
@@ -92,11 +92,9 @@ default when you don't specify a stream:
 ~~~lisp
 ;; these are equivalent:
 (print "hello")
-(print "hello" *standard-output*)
-(print "hello" )
+(print "hello" *standard-output*) ;; or (print "hello" t)
 
-(format t "hello")
-(format *standard-output* "hello")
+(format *standard-output* "hello") ;; or (format t "hello")
 ~~~
 
 You can rebind them with `let` to redirect output:
@@ -120,6 +118,15 @@ A convoluted example:
 
 We use `princ` to print an "aesthetic" representation of the
 object. `print` would print the quotes and a newline.
+
+This example can, by the way, be shortened to this:
+
+```lisp
+(with-output-to-string (*standard-output*)
+  (princ "hello")
+  (princ " ")
+  (princ "streams"))
+```
 
 ## File streams
 
@@ -255,14 +262,20 @@ source to existing stream-consuming code:
 output to multiple streams simultaneously:
 
 ~~~lisp
-(let* ((str (make-string-output-stream))
-       (broadcast (make-broadcast-stream
-                    *standard-output* str)))
-  (format broadcast "to both~%")
-  (get-output-stream-string str))
+(with-output-to-string (s)
+  (let ((broadcast (make-broadcast-stream *standard-output* s)))
+     (format broadcast "to both")))
 ;; prints "to both" to the terminal
-;; => "to both
-;; "
+;; => and returns the "to both" string.
+~~~
+
+or also:
+
+~~~lisp
+(let* ((s (make-string-output-stream))
+       (broadcast (make-broadcast-stream *standard-output* s)))
+  (format broadcast "to both")
+  (get-output-stream-string str))
 ~~~
 
 This is useful for logging to both the console and a
