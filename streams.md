@@ -22,8 +22,6 @@ Many built-in functions have a stream argument, maybe optional:
 This chapter covers the stream types, how to create
 and use them, and how to extend the stream protocol.
 
-For basic read/write recipes, see also [Input/Output](io.html).
-
 ## What is a stream anyways?
 
 A stream represents data that flows from one (or many) direction(s) to
