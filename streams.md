@@ -481,7 +481,14 @@ streams that work with standard functions like `read-char`,
 `write-char`, `read-sequence`, or `write-sequence`.
 
 The [`trivial-gray-streams`](https://github.com/trivial-gray-streams/trivial-gray-streams)
-library provides a portable interface:
+library provides a portable interface.
+
+To use it, we subclass a fundamental gray stream, such as
+`fundamental-character-output-stream` below, and we define the
+required methods for our new stream class. Below, for this character
+output stream, we must define two methods, `stream-write-char` and
+`stream-line-column`.
+
 
 ~~~lisp
 ;; in your .asd:
@@ -499,7 +506,7 @@ library provides a portable interface:
   nil)
 ~~~
 
-Using it:
+And now:
 
 ~~~lisp
 (let* ((out (make-string-output-stream))
@@ -511,24 +518,47 @@ Using it:
 ;; => 5
 ~~~
 
-The key methods to implement depend on the stream type:
+### Gray streams: fundamental classes
 
-For **character input streams:**
+The library defines the following classes:
 
-- `stream-read-char` — read one character
-- `stream-unread-char` — push a character back
+```
+trivial-gray-streams:fundamental-stream
+trivial-gray-streams:fundamental-input-stream
+trivial-gray-streams:fundamental-binary-stream
+trivial-gray-streams:fundamental-output-stream
+trivial-gray-streams:fundamental-character-stream
+trivial-gray-streams:fundamental-binary-input-stream
+trivial-gray-streams:fundamental-binary-output-stream
+trivial-gray-streams:fundamental-character-input-stream
+trivial-gray-streams:fundamental-character-output-stream
+```
+
+### Gray streams: methods
+
+The key methods to implement depend on the stream type. Take note of
+which methods are mandatory to implement, and which are optional.
+
+For **character input streams**:
+
+- `stream-read-char` — read one character.
+  - returns the symbol `:eof` if the stream is at end-of-file.
+- `stream-unread-char` — push a character back.
 - `stream-read-char-no-hang` (optional) — non-blocking character read
 - `stream-read-line` (optional, for performance)
 - `stream-read-sequence` (optional, for performance)
 
-For **character output streams:**
+Every subclass of `` must define a
+method for the first two functions.
+
+For **character output streams**:
 
 - `stream-write-char` — write one character
-- `stream-line-column` — current column (or `nil`)
+- `stream-line-column` —  Return the column number where the next character will be written, or NIL if that is not meaningful for this stream.
 - `stream-write-string` (optional, for performance)
 - `stream-write-sequence` (optional, for performance)
 
-For **binary streams:**
+For **binary streams**:
 
 - `stream-read-byte`
 - `stream-write-byte`
