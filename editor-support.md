@@ -148,13 +148,40 @@ It is based on the Swank backend, like Slime for Emacs.
 
 ## VSCode
 
+### OLIVE (NEW as of June, 2026)
+
+[OLIVE](https://github.com/kchanqvq/olive/) is a new (published on
+June of 2026) "Old-school LIsp Vscode Extension".
+
+It is based on interactions with the Lisp Swank server, and it features:
+
+- the basics: code completion, syntax highlighting, go to definition, documentation on hover…
+- a REPL and an interactive debugger
+  - with jump to source from the stack frames, ability to see local variables, etc.
+- compile current form and load files with different debug settings
+- find an ASDF system definition in the current project and load it
+- a macro stepper.
+
+<img src="assets/olive-repl.png" style="max-width: 800px" alt="The new OLIVE VSCode plugin showing the REPL."/>
+
+<!-- pdf-include-start
+![](assets/olive-repl.png)
+   pdf-include-end -->
+
+OLIVE vs. Alive:
+
+- OLIVE is based on the Swank server, like Slime in Emacs, Lem, SLIMA in Pulsar, which is more mature for Common Lisp than a Common Lisp LSP.
+- Alive's REPL starts a new thread for every evaluation, which prevents doing some interactions.
+- OLIVE wants to be more stable than Alive,
+- and as good as Emacs and Slime as possible.
+
+
+### Alive
+
 [Alive](https://marketplace.visualstudio.com/items?itemName=rheller.alive) makes
-VSCode a powerful Common Lisp development. It hooks directly into the Swank
-server that Emacs Slime uses and is fully compatible with VSCode's ability to
-develop remotely in containers, WSL, Remote machines, etc. It has no
-dependencies beyond a version of Common Lisp on which to run the Swank server.
-It can be configured to run with Quicklisp, CLPM, and Roswell. It currently
-supports:
+VSCode a powerful Common Lisp development.
+
+It is based on LSP (through cl-lsp), and currently supports:
 
 - Syntax highlighting
 - Code completion
@@ -178,6 +205,8 @@ supports:
 <!-- pdf-include-start
 ![](assets/commonlisp-vscode-alive.png)
    pdf-include-end -->
+
+### commonlisp-vscode
 
 [commonlisp-vscode
 extension](https://marketplace.visualstudio.com/items?itemName=ailisp.commonlisp-vscode)
