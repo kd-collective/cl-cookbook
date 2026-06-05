@@ -206,6 +206,10 @@ It is based on LSP (through cl-lsp), and currently supports:
 ![](assets/commonlisp-vscode-alive.png)
    pdf-include-end -->
 
+### Using VSCode with Alive
+
+See [Using VSCode with Alive](vscode-alive.html).
+
 ### commonlisp-vscode
 
 [commonlisp-vscode
@@ -229,10 +233,6 @@ supports:
 ![](assets/commonlisp-vscode.png)
    pdf-include-end -->
 
-
-### Using VSCode with Alive
-
-See [Using VSCode with Alive](vscode-alive.html).
 
 ## Intellij (new and experimental)
 

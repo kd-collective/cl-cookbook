@@ -5,11 +5,9 @@ title: Using VSCode with Alive
 The
 [Alive](https://marketplace.visualstudio.com/items?itemName=rheller.alive)
 extension makes [VSCode](https://code.visualstudio.com) a powerful
-Common Lisp development platform. Alive hooks directly into the Swank
-server that Emacs Slime uses and is fully compatible with VSCode's
-ability to develop remotely in containers, WSL, Remote machines, etc.
+Common Lisp development platform.
 It has no dependencies beyond a version of Common Lisp running on the
-target platform that can run the Swank server. It currently supports:
+target platform. It currently supports:
 
 - Syntax highlighting
 - Code completion
